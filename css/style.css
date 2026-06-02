@@ -1,0 +1,286 @@
+/* ---- reset & base ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0a14;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---- layout ---- */
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  width: 270px;
+  min-width: 270px;
+  background: #101028;
+  border-right: 1px solid #1e1e3a;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+}
+
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0a0a14;
+}
+
+/* ---- sidebar header ---- */
+#sidebar-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #1e1e3a;
+}
+#sidebar-header h1 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #00d4ff;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+/* ---- sections ---- */
+.section {
+  padding: 12px 14px;
+  border-bottom: 1px solid #1a1a30;
+}
+.section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #6080a0;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ---- tabs ---- */
+.tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.tab-btn {
+  flex: 1;
+  padding: 5px 4px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  color: #8090b0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab-btn:hover { border-color: #4060a0; color: #c0d0f0; }
+.tab-btn.active {
+  background: #162040;
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+/* ---- form inputs ---- */
+.input-field {
+  width: 100%;
+  background: #0e0e20;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  color: #d0d8f0;
+  padding: 5px 8px;
+  font-size: 12px;
+  margin-bottom: 5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-field:focus { border-color: #3060c0; }
+.input-field.mono   { font-family: 'Consolas', monospace; font-size: 11px; }
+
+textarea.input-field { resize: vertical; min-height: 38px; }
+
+select.input-field { cursor: pointer; }
+
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.input-item label {
+  display: block;
+  font-size: 10px;
+  color: #7090b0;
+  margin-bottom: 2px;
+}
+.input-item .input-field { margin-bottom: 0; }
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.input-row label { font-size: 11px; color: #7090b0; white-space: nowrap; }
+
+.hidden { display: none !important; }
+
+/* ---- buttons ---- */
+.btn {
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.btn-primary {
+  background: #0a3060;
+  color: #00d4ff;
+  border: 1px solid #0060c0;
+  width: 100%;
+  margin-top: 4px;
+}
+.btn-primary:hover { background: #0a4080; border-color: #00a0e0; }
+.btn-small { padding: 4px 10px; font-size: 11px; }
+
+/* ---- satellite list ---- */
+#sat-list { display: flex; flex-direction: column; gap: 4px; }
+.sat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0e0e22;
+  border: 1px solid #1e1e38;
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+.sat-item.sat-ref { border-color: #004070; }
+.sat-color {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sat-name { flex: 1; font-size: 11px; color: #c0d0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sat-badge {
+  font-size: 9px;
+  background: #1a2040;
+  border: 1px solid #2a3060;
+  color: #7090b0;
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.sat-ref-label {
+  font-size: 9px;
+  background: #002040;
+  border: 1px solid #0060a0;
+  color: #00a0d0;
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.sat-remove {
+  background: none; border: none; color: #804040;
+  cursor: pointer; font-size: 14px; line-height: 1;
+  padding: 0 2px;
+}
+.sat-remove:hover { color: #ff6060; }
+
+/* ---- time controls ---- */
+.time-display {
+  font-size: 12px;
+  color: #80b0d0;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.slider {
+  width: 100%;
+  margin-bottom: 8px;
+  accent-color: #00d4ff;
+  cursor: pointer;
+}
+.time-controls {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.time-controls .btn-small { flex-shrink: 0; }
+
+/* ---- main / panels ---- */
+#panels-wrap {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  gap: 2px;
+  padding: 4px;
+}
+
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0d0d20;
+  border: 1px solid #1a1a30;
+  border-radius: 6px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.panel-header {
+  padding: 6px 8px;
+  background: #101025;
+  border-bottom: 1px solid #1a1a30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.frame-selector {
+  background: #0e0e22;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  color: #a0c0e0;
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+.frame-selector:focus { border-color: #3060c0; }
+
+.plot-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.plotly-div, .leaflet-div {
+  position: absolute;
+  inset: 0;
+}
+.leaflet-div { z-index: 1; }
+
+/* ---- plot message ---- */
+.plot-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #506080;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ---- leaflet overrides ---- */
+.leaflet-container { background: #0a0a14; }
+.leaflet-control-attribution {
+  background: rgba(0,0,0,0.5) !important;
+  color: #506080 !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: #4070a0 !important; }
+
+/* ---- scrollbar ---- */
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: #0a0a14; }
+#sidebar::-webkit-scrollbar-thumb { background: #2a2a44; border-radius: 2px; }
