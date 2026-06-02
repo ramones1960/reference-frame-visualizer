@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>軌道座標系ビジュアライザー</title>
-<link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,7 +15,7 @@
       <h1>🛰 軌道座標系<br>ビジュアライザー</h1>
     </div>
 
-    <!-- Input section -->
+    <!-- 衛星入力セクション -->
     <div class="section">
       <div class="section-title">衛星入力</div>
       <div class="tabs">
@@ -24,14 +23,14 @@
         <button class="tab-btn"        data-tab="elements">軌道要素</button>
       </div>
 
-      <!-- TLE tab -->
+      <!-- TLE 入力タブ -->
       <div id="tab-tle" class="tab-panel">
         <input  id="tle-name"  type="text"   placeholder="衛星名（省略可）"  class="input-field">
         <textarea id="tle-line1" placeholder="TLE Line 1" class="input-field mono" rows="2"></textarea>
         <textarea id="tle-line2" placeholder="TLE Line 2" class="input-field mono" rows="2"></textarea>
       </div>
 
-      <!-- Orbital elements tab -->
+      <!-- 軌道要素 入力タブ -->
       <div id="tab-elements" class="tab-panel hidden">
         <input id="el-name" type="text" placeholder="衛星名" class="input-field">
         <div class="input-row">
@@ -72,13 +71,13 @@
       <button id="add-sat-btn" class="btn btn-primary">＋ 衛星を追加</button>
     </div>
 
-    <!-- Satellite list -->
+    <!-- 衛星リストセクション -->
     <div class="section">
       <div class="section-title">衛星リスト</div>
       <div id="sat-list"></div>
     </div>
 
-    <!-- Time controls -->
+    <!-- 時刻コントロールセクション -->
     <div class="section">
       <div class="section-title">時刻コントロール</div>
       <div id="time-display" class="time-display">—</div>
@@ -95,7 +94,7 @@
       </div>
     </div>
 
-    <!-- View mode -->
+    <!-- 表示モードセクション -->
     <div class="section">
       <div class="section-title">表示モード</div>
       <div class="tabs">
@@ -105,10 +104,10 @@
     </div>
   </aside>
 
-  <!-- ===== Main area ===== -->
+  <!-- ===== メインエリア ===== -->
   <main id="main">
     <div id="panels-wrap">
-      <!-- Panel 0 -->
+      <!-- パネル 0（常時表示）-->
       <div class="panel" id="panel-0">
         <div class="panel-header">
           <select class="frame-selector" id="frame-0" onchange="onFrameChange(0)">
@@ -126,7 +125,7 @@
         </div>
       </div>
 
-      <!-- Panel 1 (hidden in 1-up mode) -->
+      <!-- パネル 1（2画面モード時のみ表示）-->
       <div class="panel hidden" id="panel-1">
         <div class="panel-header">
           <select class="frame-selector" id="frame-1" onchange="onFrameChange(1)">
@@ -148,13 +147,7 @@
 
 </div>
 
-<script src="node_modules/plotly.js-dist-min/plotly.min.js"></script>
-<script src="node_modules/leaflet/dist/leaflet.js"></script>
-<script src="js/constants.js"></script>
-<script src="js/tle.js"></script>
-<script src="js/keplerian.js"></script>
-<script src="js/frames.js"></script>
-<script src="js/plot.js"></script>
-<script src="js/app.js"></script>
+<!-- TypeScript エントリーポイント（Vite がバンドルする）-->
+<script type="module" src="/src/app.ts"></script>
 </body>
 </html>
