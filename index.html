@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>軌道座標系ビジュアライザー</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== Sidebar ===== -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <h1>🛰 軌道座標系<br>ビジュアライザー</h1>
+    </div>
+
+    <!-- 衛星入力セクション -->
+    <div class="section">
+      <div class="section-title">衛星入力</div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tle">TLE</button>
+        <button class="tab-btn"        data-tab="elements">軌道要素</button>
+      </div>
+
+      <!-- TLE 入力タブ -->
+      <div id="tab-tle" class="tab-panel">
+        <input  id="tle-name"  type="text"   placeholder="衛星名（省略可）"  class="input-field">
+        <textarea id="tle-line1" placeholder="TLE Line 1" class="input-field mono" rows="2"></textarea>
+        <textarea id="tle-line2" placeholder="TLE Line 2" class="input-field mono" rows="2"></textarea>
+      </div>
+
+      <!-- 軌道要素 入力タブ -->
+      <div id="tab-elements" class="tab-panel hidden">
+        <input id="el-name" type="text" placeholder="衛星名" class="input-field">
+        <div class="input-row">
+          <label>中心天体</label>
+          <select id="el-body" class="input-field">
+            <option value="earth">地球</option>
+            <option value="moon">月</option>
+          </select>
+        </div>
+        <div class="input-grid">
+          <div class="input-item">
+            <label>a (km)</label>
+            <input id="el-a"    type="number" placeholder="6778"  class="input-field">
+          </div>
+          <div class="input-item">
+            <label>e</label>
+            <input id="el-e"    type="number" placeholder="0.0" step="0.001" class="input-field">
+          </div>
+          <div class="input-item">
+            <label>i (°)</label>
+            <input id="el-i"    type="number" placeholder="51.6"  class="input-field">
+          </div>
+          <div class="input-item">
+            <label>Ω (°)</label>
+            <input id="el-raan" type="number" placeholder="0"     class="input-field">
+          </div>
+          <div class="input-item">
+            <label>ω (°)</label>
+            <input id="el-argp" type="number" placeholder="0"     class="input-field">
+          </div>
+          <div class="input-item">
+            <label>M₀ (°)</label>
+            <input id="el-M"    type="number" placeholder="0"     class="input-field">
+          </div>
+        </div>
+      </div>
+
+      <button id="add-sat-btn" class="btn btn-primary">＋ 衛星を追加</button>
+    </div>
+
+    <!-- 衛星リストセクション -->
+    <div class="section">
+      <div class="section-title">衛星リスト</div>
+      <div id="sat-list"></div>
+    </div>
+
+    <!-- 時刻コントロールセクション -->
+    <div class="section">
+      <div class="section-title">時刻コントロール</div>
+      <div id="time-display" class="time-display">—</div>
+      <input type="range" id="time-slider" class="slider" min="0" max="1000" value="0" step="1">
+      <div class="time-controls">
+        <button id="btn-reset" class="btn btn-small" style="background:#0e0e22;border:1px solid #2a2a44;color:#a0b0c0;">⏮ 最初</button>
+        <button id="btn-play"  class="btn btn-primary btn-small" style="flex:1;">▶ 再生</button>
+        <select id="speed-select" class="input-field" style="width:65px;margin:0">
+          <option value="100">100×</option>
+          <option value="1000" selected>1000×</option>
+          <option value="5000">5000×</option>
+          <option value="30000">30000×</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 表示モードセクション -->
+    <div class="section">
+      <div class="section-title">表示モード</div>
+      <div class="tabs">
+        <button class="tab-btn active" id="view-1" onclick="setViewMode(1)">1画面</button>
+        <button class="tab-btn"        id="view-2" onclick="setViewMode(2)">2画面</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== メインエリア ===== -->
+  <main id="main">
+    <div id="panels-wrap">
+      <!-- パネル 0（常時表示）-->
+      <div class="panel" id="panel-0">
+        <div class="panel-header">
+          <select class="frame-selector" id="frame-0" onchange="onFrameChange(0)">
+            <option value="eci">ECI（地心慣性）</option>
+            <option value="ecef">ECEF（地球固定）</option>
+            <option value="rtn">RTN / LVLH</option>
+            <option value="groundtrack">地上トラック</option>
+            <option value="lci">月慣性系 (LCI)</option>
+            <option value="lcf">月固定系 (LCF)</option>
+          </select>
+        </div>
+        <div class="plot-area" id="plot-area-0">
+          <div class="plotly-div" id="plotly-0"></div>
+          <div class="leaflet-div" id="leaflet-0" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- パネル 1（2画面モード時のみ表示）-->
+      <div class="panel hidden" id="panel-1">
+        <div class="panel-header">
+          <select class="frame-selector" id="frame-1" onchange="onFrameChange(1)">
+            <option value="eci">ECI（地心慣性）</option>
+            <option value="ecef" selected>ECEF（地球固定）</option>
+            <option value="rtn">RTN / LVLH</option>
+            <option value="groundtrack">地上トラック</option>
+            <option value="lci">月慣性系 (LCI)</option>
+            <option value="lcf">月固定系 (LCF)</option>
+          </select>
+        </div>
+        <div class="plot-area" id="plot-area-1">
+          <div class="plotly-div" id="plotly-1"></div>
+          <div class="leaflet-div" id="leaflet-1" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- TypeScript エントリーポイント（Vite がバンドルする）-->
+<script type="module" src="/src/app.ts"></script>
+</body>
+</html>
