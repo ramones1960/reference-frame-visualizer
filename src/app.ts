@@ -4,7 +4,7 @@
 // ============================================================
 
 import { parseTLE, parseElements } from './tle';
-import { renderPanel, invalidateLeaflet, SAT_COLORS } from './plot';
+import { renderPanel, invalidateLeaflet, SAT_COLORS, setSyncEnabled, syncPanels } from './plot';
 import type { Satellite, FrameType } from './types';
 
 // ---- アプリケーション状態 ---------------------------------------
@@ -281,6 +281,8 @@ export function setViewMode(n: number): void {
 
   // パネルサイズが変わるため Leaflet のサイズを再計算させる
   setTimeout(() => { invalidateLeaflet(0); invalidateLeaflet(1); }, 100);
+  // 2画面時のみパネル間の表示範囲・角度を連動させる
+  setSyncEnabled(n === 2);
   _renderAll();
 }
 
@@ -294,6 +296,8 @@ export function onFrameChange(idx: number): void {
   _renderPanel(idx);
   // 地上トラック表示時は Leaflet サイズを再計算させる
   setTimeout(() => invalidateLeaflet(idx), 100);
+  // 2画面モードでは座標系変更時にも表示範囲・カメラを再同期
+  if (viewMode === 2) setTimeout(syncPanels, 0);
 }
 
 // ---- 描画 -------------------------------------------------------
@@ -301,7 +305,12 @@ export function onFrameChange(idx: number): void {
 /** 全表示パネルを再描画する */
 function _renderAll(): void {
   _renderPanel(0);
-  if (viewMode === 2) _renderPanel(1);
+  if (viewMode === 2) {
+    _renderPanel(1);
+    // 両パネル描画後に表示範囲・カメラを同期させる
+    // Plotly の newPlot/react 完了を待つため次フレームに遅延
+    setTimeout(syncPanels, 0);
+  }
 }
 
 /**

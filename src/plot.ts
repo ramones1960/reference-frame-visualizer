@@ -41,6 +41,25 @@ const _leafletMaps: Record<number, any> = {};
 /** Leaflet のトラック・マーカーレイヤーをパネルごとに保持 */
 const _leafletLayers: Record<number, { tracks: any[]; markers: any[] }> = {};
 
+// ---- パネル間同期の状態 -----------------------------------------
+
+/** 2画面モードでパネル間の表示を同期するかどうか */
+let _syncEnabled = false;
+
+/** パネルごとのデータ最大半径 [km]（軸レンジ同期用） */
+const _panelDataMaxR: Record<number, number> = {};
+
+/** パネルごとの表示種別（'3d' | 'map' | null）。同種のときのみ同期する */
+const _panelKind: Record<number, '3d' | 'map' | null> = { 0: null, 1: null };
+
+/** カメラ／マップ操作の再帰反映を防ぐためのガードフラグ */
+let _syncingCamera = false;
+let _syncingMap = false;
+
+/** plotly_relayout / leaflet イベントを各パネルに1回だけ仕込むためのフラグ */
+const _plotSyncHooked: Record<number, boolean> = {};
+const _mapSyncHooked: Record<number, boolean> = {};
+
 // ---- 球面サーフェス（Plotly）-------------------------------------
 
 /**
@@ -133,6 +152,9 @@ export function render3D(
   // 天体（地球 or 月）の球面を最初に追加
   traces.push(_sphereTrace(R_body, bodyColor));
 
+  // 軸レンジ同期用：天体半径＋衛星位置の最大値を追跡（プロット単位 = km）
+  let maxR = (R_body / 1000) * 1.05;
+
   // ---- 各衛星の軌跡と現在位置マーカーを追加 ----
   sats.forEach((sat, idx) => {
     const color = SAT_COLORS[idx % SAT_COLORS.length];
@@ -152,7 +174,10 @@ export function render3D(
         refSt ?? { pos, vel: velocities[i] },
       );
       // m → km に変換してプロット
-      xs.push(p[0] / 1000); ys.push(p[1] / 1000); zs.push(p[2] / 1000);
+      const xk = p[0] / 1000, yk = p[1] / 1000, zk = p[2] / 1000;
+      xs.push(xk); ys.push(yk); zs.push(zk);
+      const r = Math.max(Math.abs(xk), Math.abs(yk), Math.abs(zk));
+      if (r > maxR) maxR = r;
     });
 
     // 軌跡ラインを追加
@@ -172,6 +197,29 @@ export function render3D(
       x: [mp[0]/1000], y: [mp[1]/1000], z: [mp[2]/1000],
       marker: { color, size: 7, symbol: 'circle', line: { color: '#fff', width: 1 } },
       name: sat.name + '（現在）',
+      showlegend: false,
+    });
+  });
+
+  // ---- 座標系の X/Y/Z 三軸を原点から描画（赤＝X／緑＝Y／青＝Z）----
+  const axisLen = maxR;
+  const axes: ReadonlyArray<{ name: string; vec: [number, number, number]; color: string }> = [
+    { name: 'X', vec: [axisLen, 0, 0], color: '#ff4d4d' },
+    { name: 'Y', vec: [0, axisLen, 0], color: '#4dff7a' },
+    { name: 'Z', vec: [0, 0, axisLen], color: '#5aa8ff' },
+  ];
+  axes.forEach(({ name, vec, color }) => {
+    traces.push({
+      type: 'scatter3d',
+      mode: 'lines+text',
+      x: [0, vec[0]],
+      y: [0, vec[1]],
+      z: [0, vec[2]],
+      line: { color, width: 4 },
+      text: ['', name],
+      textposition: 'top center',
+      textfont: { color, size: 14 },
+      hoverinfo: 'skip',
       showlegend: false,
     });
   });
@@ -207,13 +255,44 @@ export function render3D(
     margin: { l: 0, r: 0, t: 30, b: 0 },
   };
 
+  // 描画状態を記録（同期判定用）
+  _panelKind[panelIdx] = '3d';
+  _panelDataMaxR[panelIdx] = maxR;
+
   // 初回は newPlot、以降は react（差分更新）でパフォーマンスを確保
   if (_plotInited[plotId]) {
-    Plotly.react(plotId, traces, layout);
+    Plotly.react(plotId, traces, layout).then(() => _hookPlotSync(panelIdx));
   } else {
-    Plotly.newPlot(plotId, traces, layout, { responsive: true, displaylogo: false });
+    Plotly.newPlot(plotId, traces, layout, { responsive: true, displaylogo: false })
+      .then(() => _hookPlotSync(panelIdx));
     _plotInited[plotId] = true;
   }
+}
+
+/**
+ * Plotly 3D シーンのカメラ操作イベントをフックし、相手パネルにも反映させる
+ * 同一パネルで複数回呼ばれても1度だけ仕込む
+ */
+function _hookPlotSync(panelIdx: number): void {
+  if (_plotSyncHooked[panelIdx]) return;
+  const el = document.getElementById(`plotly-${panelIdx}`) as HTMLElement | null;
+  if (!el || typeof el.on !== 'function') return;
+  _plotSyncHooked[panelIdx] = true;
+  const otherIdx = panelIdx === 0 ? 1 : 0;
+  el.on('plotly_relayout', (event: any) => {
+    if (!_syncEnabled || _syncingCamera) return;
+    if (_panelKind[panelIdx] !== '3d' || _panelKind[otherIdx] !== '3d') return;
+    // scene.camera.* のキーが含まれていれば（＝ユーザーが回転した場合）追従する
+    const isCameraChange = event && Object.keys(event).some(k => k.startsWith('scene.camera'));
+    if (!isCameraChange) return;
+    const camera = (el as any)._fullLayout?.scene?.camera;
+    if (!camera) return;
+    const otherEl = document.getElementById(`plotly-${otherIdx}`) as HTMLElement | null;
+    if (!otherEl) return;
+    _syncingCamera = true;
+    Plotly.relayout(otherEl, { 'scene.camera': camera })
+      .finally(() => { _syncingCamera = false; });
+  });
 }
 
 // ---- Leaflet 地上トラックパネル描画 -------------------------------
@@ -238,6 +317,9 @@ export function renderGroundTrack(
   document.getElementById(plotId)!.style.display = 'none';
   document.getElementById(leafId)!.style.display = '';
 
+  // 同期判定用：このパネルは地図表示
+  _panelKind[panelIdx] = 'map';
+
   // 地球周回衛星のみを表示対象とする
   const earthSats = satellites.filter(s => s.body === 'earth');
 
@@ -254,6 +336,7 @@ export function renderGroundTrack(
     // コンテナサイズ確定後に再計算させる
     setTimeout(() => map.invalidateSize(), 50);
   }
+  _hookMapSync(panelIdx);
 
   const map = _leafletMaps[panelIdx];
 
@@ -341,6 +424,92 @@ export function renderPanel(
  */
 export function invalidateLeaflet(panelIdx: number): void {
   if (_leafletMaps[panelIdx]) _leafletMaps[panelIdx].invalidateSize();
+}
+
+/**
+ * Leaflet マップの中心移動・ズーム変更を相手パネルに反映するイベントを仕込む
+ */
+function _hookMapSync(panelIdx: number): void {
+  if (_mapSyncHooked[panelIdx]) return;
+  const map = _leafletMaps[panelIdx];
+  if (!map) return;
+  _mapSyncHooked[panelIdx] = true;
+  const otherIdx = panelIdx === 0 ? 1 : 0;
+  const handler = () => {
+    if (!_syncEnabled || _syncingMap) return;
+    if (_panelKind[panelIdx] !== 'map' || _panelKind[otherIdx] !== 'map') return;
+    const other = _leafletMaps[otherIdx];
+    if (!other) return;
+    _syncingMap = true;
+    try {
+      other.setView(map.getCenter(), map.getZoom(), { animate: false });
+    } finally {
+      _syncingMap = false;
+    }
+  };
+  map.on('move', handler);
+  map.on('zoom', handler);
+}
+
+// ---- パネル間同期 API -------------------------------------------
+
+/**
+ * 2画面モードのパネル間同期を有効化／無効化する
+ */
+export function setSyncEnabled(on: boolean): void {
+  _syncEnabled = on;
+  if (!on) return;
+  // 有効化された瞬間に現状を揃える
+  syncPanels();
+}
+
+/**
+ * 両パネルの種別が一致するときに表示範囲（軸レンジ／ズーム）を揃える
+ * - 3D × 3D：両パネルのデータ最大半径の大きい方を全軸に適用
+ * - map × map：パネル0の中心とズームをパネル1へ反映
+ * カメラ／マップ操作後のフォローは plotly_relayout / leaflet イベントで実施
+ */
+export function syncPanels(): void {
+  if (!_syncEnabled) return;
+  const k0 = _panelKind[0], k1 = _panelKind[1];
+  if (k0 !== k1 || k0 == null) return;
+
+  if (k0 === '3d') {
+    const r0 = _panelDataMaxR[0], r1 = _panelDataMaxR[1];
+    if (r0 == null || r1 == null) return;
+    const m = Math.max(r0, r1);
+    const range = [-m, m];
+    // 共通の軸レンジを両パネルに適用（aspectmode は cube のまま）
+    const update: any = {
+      'scene.xaxis.range': range,
+      'scene.yaxis.range': range,
+      'scene.zaxis.range': range,
+      'scene.xaxis.autorange': false,
+      'scene.yaxis.autorange': false,
+      'scene.zaxis.autorange': false,
+    };
+    // 既存パネル0のカメラを取得してパネル1に反映（角度を揃える）
+    const el0 = document.getElementById('plotly-0') as HTMLElement | null;
+    const el1 = document.getElementById('plotly-1') as HTMLElement | null;
+    const cam0 = (el0 as any)?._fullLayout?.scene?.camera;
+    _syncingCamera = true;
+    const tasks: Promise<any>[] = [];
+    if (el0) tasks.push(Plotly.relayout(el0, update));
+    if (el1) {
+      const u1 = cam0 ? { ...update, 'scene.camera': cam0 } : update;
+      tasks.push(Plotly.relayout(el1, u1));
+    }
+    Promise.allSettled(tasks).finally(() => { _syncingCamera = false; });
+  } else if (k0 === 'map') {
+    const m0 = _leafletMaps[0], m1 = _leafletMaps[1];
+    if (!m0 || !m1) return;
+    _syncingMap = true;
+    try {
+      m1.setView(m0.getCenter(), m0.getZoom(), { animate: false });
+    } finally {
+      _syncingMap = false;
+    }
+  }
 }
 
 // ---- ユーティリティ ----------------------------------------------
