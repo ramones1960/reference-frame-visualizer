@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>座標変換ステップビジュアライザー</title>
+<link rel="stylesheet" href="css/transform.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 3D ビューポート ===== -->
+  <main id="main">
+    <div id="viewport"></div>
+
+    <!-- 左上 HUD：現在ステップとフレーム名 -->
+    <div id="hud">
+      <span id="hud-step">STEP 0/7</span>
+      <span id="hud-frame">—</span>
+    </div>
+
+    <button id="btn-camera" class="btn btn-ghost" title="カメラを初期位置に戻す">⌖ 視点リセット</button>
+  </main>
+
+  <!-- ===== サイドパネル ===== -->
+  <aside id="panel">
+    <div id="panel-header">
+      <h1>🛰 座標変換<br>ステップビジュアライザー</h1>
+      <a href="./index.html" class="back-link">← 軌道ビューへ</a>
+    </div>
+
+    <!-- 軌道要素入力 -->
+    <div class="section">
+      <div class="section-title">軌道要素・地上局</div>
+      <div class="input-grid">
+        <div class="input-item">
+          <label>a (km)</label>
+          <input id="in-a" type="number" step="any" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>e</label>
+          <input id="in-e" type="number" step="0.01" min="0" max="0.99" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>i (°)</label>
+          <input id="in-i" type="number" step="any" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>Ω (°)</label>
+          <input id="in-raan" type="number" step="any" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>ω (°)</label>
+          <input id="in-argp" type="number" step="any" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>M₀ (°)</label>
+          <input id="in-m0" type="number" step="any" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>局 緯度 (°)</label>
+          <input id="in-lat" type="number" step="any" min="-90" max="90" class="input-field">
+        </div>
+        <div class="input-item">
+          <label>局 経度 (°)</label>
+          <input id="in-lon" type="number" step="any" min="-180" max="180" class="input-field">
+        </div>
+      </div>
+      <button id="btn-apply" class="btn btn-primary">適用</button>
+    </div>
+
+    <!-- 時刻コントロール -->
+    <div class="section">
+      <div class="section-title">時刻（J2000 基準）</div>
+      <div class="time-line">
+        <span id="time-display" class="mono">t = J2000 + 0h 00m 00s</span>
+        <span id="gmst-display" class="mono dim">θ_GMST = —</span>
+      </div>
+      <input type="range" id="time-slider" class="slider" min="0" max="172800" value="0" step="10">
+      <div class="time-controls">
+        <button id="btn-play" class="btn btn-primary btn-small">▶ 時刻再生</button>
+        <select id="speed-select" class="input-field speed">
+          <option value="60">×60</option>
+          <option value="300" selected>×300</option>
+          <option value="1800">×1800</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ステップナビゲーション -->
+    <div class="section step-nav">
+      <div class="section-title">変換ステップ</div>
+      <div class="nav-controls">
+        <button id="btn-prev" class="btn btn-small">◀ 前へ</button>
+        <button id="btn-next" class="btn btn-primary btn-small">次へ ▶</button>
+        <button id="btn-replay" class="btn btn-small" title="現在ステップの回転アニメーションを再生">↻ 再生</button>
+      </div>
+      <div id="step-list"></div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- TypeScript エントリーポイント（Vite がバンドルする）-->
+<script type="module" src="/src/transform/main.ts"></script>
+</body>
+</html>
